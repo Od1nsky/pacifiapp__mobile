@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  pacificapp__mobile
 //
-//  Created by Vladislav Kapustian on 05.04.2025.
+//  Created by Vladislav Kapustian on 13.03.2025.
 //
 
 import SwiftUI
