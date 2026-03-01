@@ -1,134 +1,124 @@
 import Foundation
-import SwiftUI
+import GRPC
 
-class RecommendationsViewModel: ObservableObject {
+@MainActor
+final class RecommendationsViewModel: ObservableObject {
     @Published var recommendations: [Recommendation] = []
     @Published var userRecommendations: [UserRecommendation] = []
-    @Published var isLoading = false
+    @Published var isLoadingTemplates = false
+    @Published var isLoadingUserData = false
     @Published var errorMessage: String?
-    
-    private let baseURL = "http://localhost:8000/api"
-    
+    @Published var lastActionMessage: String?
+
+    private let recommendationService: RecommendationGRPCService
+
+    init(recommendationService: RecommendationGRPCService = GRPCServiceFactory.shared.recommendationService) {
+        self.recommendationService = recommendationService
+    }
+
     func fetchRecommendations(category: Recommendation.Category? = nil) {
-        isLoading = true
-        var components = URLComponents(string: "\(baseURL)/recommendations/")!
-        
-        if let category = category {
-            components.queryItems = [
-                URLQueryItem(name: "category", value: category.rawValue)
-            ]
-        }
-        
-        guard let url = components.url else {
-            errorMessage = "Invalid URL"
-            isLoading = false
-            return
-        }
-        
-        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                if let error = error {
-                    self?.errorMessage = error.localizedDescription
-                    return
+        isLoadingTemplates = true
+        errorMessage = nil
+
+        Task {
+            do {
+                let grpcCategory: Recommendation_RecommendationCategory?
+                if let category = category {
+                    switch category {
+                    case .sleep: grpcCategory = .categorySleep
+                    case .stress: grpcCategory = .categoryStress
+                    case .work: grpcCategory = .categoryWork
+                    case .activity: grpcCategory = .categoryActivity
+                    }
+                } else {
+                    grpcCategory = nil
                 }
-                
-                guard let data = data else {
-                    self?.errorMessage = "No data received"
-                    return
-                }
-                
-                do {
-                    let response = try JSONDecoder().decode(RecommendationsResponse.self, from: data)
-                    self?.recommendations = response.results
-                } catch {
-                    self?.errorMessage = "Failed to decode recommendations"
-                }
+
+                let result = try await recommendationService.listRecommendations(
+                    page: 1,
+                    pageSize: 50,
+                    category: grpcCategory,
+                    priority: nil,
+                    isQuick: nil,
+                    type: nil
+                )
+                recommendations = result.recommendations
+            } catch {
+                errorMessage = mapError(error)
             }
-        }.resume()
+            isLoadingTemplates = false
+        }
     }
-    
-    func fetchUserRecommendations() {
-        isLoading = true
-        guard let url = URL(string: "\(baseURL)/user-recommendations/") else {
-            errorMessage = "Invalid URL"
-            isLoading = false
-            return
-        }
-        
-        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                if let error = error {
-                    self?.errorMessage = error.localizedDescription
-                    return
+
+    func fetchUserRecommendations(status: UserRecommendation.Status? = nil) {
+        isLoadingUserData = true
+        errorMessage = nil
+
+        Task {
+            do {
+                let result = try await recommendationService.listUserRecommendations(
+                    page: 1,
+                    pageSize: 50
+                )
+                if let status = status {
+                    userRecommendations = result.recommendations.filter { $0.status == status }
+                } else {
+                    userRecommendations = result.recommendations
                 }
-                
-                guard let data = data else {
-                    self?.errorMessage = "No data received"
-                    return
-                }
-                
-                do {
-                    let response = try JSONDecoder().decode(UserRecommendationsResponse.self, from: data)
-                    self?.userRecommendations = response.results
-                } catch {
-                    self?.errorMessage = "Failed to decode user recommendations"
-                }
+            } catch {
+                errorMessage = mapError(error)
             }
-        }.resume()
+            isLoadingUserData = false
+        }
     }
-    
-    func updateRecommendationStatus(id: Int, status: UserRecommendation.Status) {
-        isLoading = true
-        guard let url = URL(string: "\(baseURL)/user-recommendations/\(id)/update_status/") else {
-            errorMessage = "Invalid URL"
-            isLoading = false
-            return
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "PATCH"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let updateData = ["status": status.rawValue]
-        
-        do {
-            request.httpBody = try JSONEncoder().encode(updateData)
-        } catch {
-            errorMessage = "Failed to encode status update"
-            isLoading = false
-            return
-        }
-        
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                if let error = error {
-                    self?.errorMessage = error.localizedDescription
-                    return
-                }
-                
-                // Refresh user recommendations after update
-                self?.fetchUserRecommendations()
+
+    func requestNewRecommendations() {
+        isLoadingUserData = true
+        errorMessage = nil
+
+        Task {
+            do {
+                let newRecs = try await recommendationService.requestNewRecommendations()
+                userRecommendations = newRecs
+                lastActionMessage = "Подобраны новые рекомендации"
+            } catch {
+                errorMessage = mapError(error)
             }
-        }.resume()
+            isLoadingUserData = false
+        }
+    }
+
+    func updateRecommendationStatus(id: String, status: UserRecommendation.Status) {
+        isLoadingUserData = true
+        errorMessage = nil
+
+        let grpcStatus: Recommendation_RecommendationStatus
+        switch status {
+        case .new: grpcStatus = .statusNew
+        case .inProgress: grpcStatus = .statusInProgress
+        case .completed: grpcStatus = .statusCompleted
+        case .skipped: grpcStatus = .statusSkipped
+        }
+
+        Task {
+            do {
+                _ = try await recommendationService.updateRecommendationStatus(
+                    publicId: id,
+                    status: grpcStatus
+                )
+                lastActionMessage = "Статус обновлен"
+                fetchUserRecommendations()
+            } catch {
+                errorMessage = mapError(error)
+                isLoadingUserData = false
+            }
+        }
+    }
+
+    private func mapError(_ error: Error) -> String {
+        if let grpcError = error as? GRPCStatus {
+            return grpcError.message ?? "Ошибка сервера (\(grpcError.code))"
+        }
+        return error.localizedDescription
     }
 }
-
-struct RecommendationsResponse: Codable {
-    let count: Int
-    let next: String?
-    let previous: String?
-    let results: [Recommendation]
-}
-
-struct UserRecommendationsResponse: Codable {
-    let count: Int
-    let next: String?
-    let previous: String?
-    let results: [UserRecommendation]
-} 

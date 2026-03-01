@@ -37,17 +37,31 @@ struct Recommendation: Codable, Identifiable {
     let title: String
     let description: String
     let category: Category
-    let durationMinutes: Int?
+    let priority: String
+    let durationMinutes: Int
     let isQuick: Bool
     let type: Int
+    let createdAt: String
+    let updatedAt: String
     
-    enum Category: String, Codable {
-        case rest = "rest"
-        case sleep = "sleep"
-        case exercise = "exercise"
-        case mindfulness = "mindfulness"
-        case social = "social"
-        case workBalance = "work_balance"
+    enum Category: String, Codable, CaseIterable {
+        case sleep
+        case stress
+        case work
+        case activity
+        
+        var displayTitle: String {
+            switch self {
+            case .sleep:
+                return "Sleep"
+            case .stress:
+                return "Stress"
+            case .work:
+                return "Work"
+            case .activity:
+                return "Activity"
+            }
+        }
     }
     
     enum CodingKeys: String, CodingKey {
@@ -55,37 +69,65 @@ struct Recommendation: Codable, Identifiable {
         case title
         case description
         case category
+        case priority
         case durationMinutes = "duration_minutes"
         case isQuick = "is_quick"
         case type
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
     }
 }
 
 struct UserRecommendation: Codable, Identifiable {
-    let id: Int
-    let user: Int
-    let recommendation: Recommendation
+    let id: String
+    let title: String
+    let description: String
+    let category: Recommendation.Category
+    let priority: String
+    let durationMinutes: Int
+    let isQuick: Bool
+    let recommendationType: String
     let status: Status
     let reason: String?
     let userFeedback: String?
     let userRating: Int?
+    let createdAt: String
     let completedAt: String?
     
-    enum Status: String, Codable {
-        case pending = "pending"
-        case accepted = "accepted"
+    enum Status: String, Codable, CaseIterable {
+        case new = "new"
+        case inProgress = "in_progress"
         case completed = "completed"
-        case rejected = "rejected"
+        case skipped = "skipped"
+        
+        var displayTitle: String {
+            switch self {
+            case .new:
+                return "New"
+            case .inProgress:
+                return "In Progress"
+            case .completed:
+                return "Completed"
+            case .skipped:
+                return "Skipped"
+            }
+        }
     }
     
     enum CodingKeys: String, CodingKey {
         case id
-        case user
-        case recommendation
+        case title
+        case description
+        case category
+        case priority
+        case durationMinutes = "duration_minutes"
+        case isQuick = "is_quick"
+        case recommendationType = "recommendation_type"
         case status
         case reason
         case userFeedback = "user_feedback"
         case userRating = "user_rating"
+        case createdAt = "created_at"
         case completedAt = "completed_at"
     }
-} 
+}

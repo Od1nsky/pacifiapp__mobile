@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		00A069E72F14A3EB000715FA /* GRPC in Frameworks */ = {isa = PBXBuildFile; productRef = 00A069E62F14A3EB000715FA /* GRPC */; };
+		00A069F22F14ABA7000715FA /* AlertToast in Frameworks */ = {isa = PBXBuildFile; productRef = 00A069F12F14ABA7000715FA /* AlertToast */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		002B533F2DA18961008467D2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -29,9 +34,31 @@
 		002B53482DA18961008467D2 /* pacificapp__mobileUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = pacificapp__mobileUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		00A069C22F149B66000715FA /* Exceptions for "pacificapp__mobile" folder in "pacificapp__mobile" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				Proto/burnout.proto,
+				Proto/calendar.proto,
+				Proto/common.proto,
+				Proto/dashboard.proto,
+				Proto/recommendation.proto,
+				Proto/sleep.proto,
+				Proto/stress.proto,
+				Proto/user.proto,
+				Proto/work.proto,
+			);
+			target = 002B532D2DA18960008467D2 /* pacificapp__mobile */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		002B53302DA18960008467D2 /* pacificapp__mobile */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				00A069C22F149B66000715FA /* Exceptions for "pacificapp__mobile" folder in "pacificapp__mobile" target */,
+			);
 			path = pacificapp__mobile;
 			sourceTree = "<group>";
 		};
@@ -52,6 +79,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				00A069E72F14A3EB000715FA /* GRPC in Frameworks */,
+				00A069F22F14ABA7000715FA /* AlertToast in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +141,8 @@
 			);
 			name = pacificapp__mobile;
 			packageProductDependencies = (
+				00A069E62F14A3EB000715FA /* GRPC */,
+				00A069F12F14ABA7000715FA /* AlertToast */,
 			);
 			productName = pacificapp__mobile;
 			productReference = 002B532E2DA18960008467D2 /* pacificapp__mobile.app */;
@@ -196,6 +227,10 @@
 			);
 			mainGroup = 002B53252DA18960008467D2;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				00A069E52F14A3EB000715FA /* XCRemoteSwiftPackageReference "grpc-swift" */,
+				00A069F02F14ABA7000715FA /* XCRemoteSwiftPackageReference "AlertToast" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 002B532F2DA18960008467D2 /* Products */;
 			projectDirPath = "";
@@ -399,12 +434,8 @@
 				DEVELOPMENT_ASSET_PATHS = "\"pacificapp__mobile/Preview Content\"";
 				DEVELOPMENT_TEAM = HS7943YZ43;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = pacificapp__mobile/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -428,12 +459,8 @@
 				DEVELOPMENT_ASSET_PATHS = "\"pacificapp__mobile/Preview Content\"";
 				DEVELOPMENT_TEAM = HS7943YZ43;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = pacificapp__mobile/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -555,6 +582,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		00A069E52F14A3EB000715FA /* XCRemoteSwiftPackageReference "grpc-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/grpc/grpc-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.20.0;
+			};
+		};
+		00A069F02F14ABA7000715FA /* XCRemoteSwiftPackageReference "AlertToast" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/elai950/AlertToast.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.9;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		00A069E62F14A3EB000715FA /* GRPC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 00A069E52F14A3EB000715FA /* XCRemoteSwiftPackageReference "grpc-swift" */;
+			productName = GRPC;
+		};
+		00A069F12F14ABA7000715FA /* AlertToast */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 00A069F02F14ABA7000715FA /* XCRemoteSwiftPackageReference "AlertToast" */;
+			productName = AlertToast;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 002B53262DA18960008467D2 /* Project object */;
 }

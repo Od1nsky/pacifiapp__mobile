@@ -1,116 +1,86 @@
 import Foundation
-import SwiftUI
+import GRPC
 
-class WorkViewModel: ObservableObject {
+@MainActor
+final class WorkViewModel: ObservableObject {
     @Published var workActivities: [WorkActivity] = []
     @Published var workStatistics: WorkStatistics?
     @Published var isLoading = false
     @Published var errorMessage: String?
-    
-    private let baseURL = "http://localhost:8000/api"
-    
+    @Published var lastActionMessage: String?
+
+    private let workService: WorkGRPCService
+
+    init(workService: WorkGRPCService = GRPCServiceFactory.shared.workService) {
+        self.workService = workService
+    }
+
     func fetchWorkActivities() {
         isLoading = true
-        guard let url = URL(string: "\(baseURL)/work-activity/") else {
-            errorMessage = "Invalid URL"
-            isLoading = false
-            return
-        }
-        
-        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                if let error = error {
-                    self?.errorMessage = error.localizedDescription
-                    return
-                }
-                
-                guard let data = data else {
-                    self?.errorMessage = "No data received"
-                    return
-                }
-                
-                do {
-                    let activities = try JSONDecoder().decode([WorkActivity].self, from: data)
-                    self?.workActivities = activities
-                } catch {
-                    self?.errorMessage = "Failed to decode work activities"
-                }
+        errorMessage = nil
+
+        Task {
+            do {
+                let result = try await workService.listWorkActivities(
+                    page: 1,
+                    pageSize: 50,
+                    startDate: nil,
+                    endDate: nil,
+                    date: nil
+                )
+                workActivities = result.activities
+            } catch {
+                errorMessage = mapError(error)
             }
-        }.resume()
+            isLoading = false
+        }
     }
-    
+
     func fetchWorkStatistics(startDate: String, endDate: String) {
         isLoading = true
-        var components = URLComponents(string: "\(baseURL)/work-activity/statistics/")!
-        components.queryItems = [
-            URLQueryItem(name: "start_date", value: startDate),
-            URLQueryItem(name: "end_date", value: endDate)
-        ]
-        
-        guard let url = components.url else {
-            errorMessage = "Invalid URL"
-            isLoading = false
-            return
-        }
-        
-        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                if let error = error {
-                    self?.errorMessage = error.localizedDescription
-                    return
-                }
-                
-                guard let data = data else {
-                    self?.errorMessage = "No data received"
-                    return
-                }
-                
-                do {
-                    let statistics = try JSONDecoder().decode(WorkStatistics.self, from: data)
-                    self?.workStatistics = statistics
-                } catch {
-                    self?.errorMessage = "Failed to decode work statistics"
-                }
+        errorMessage = nil
+
+        Task {
+            do {
+                let stats = try await workService.getWorkStatistics(
+                    startDate: startDate,
+                    endDate: endDate
+                )
+                workStatistics = stats
+            } catch {
+                errorMessage = mapError(error)
             }
-        }.resume()
+            isLoading = false
+        }
     }
-    
+
     func createWorkActivity(activity: WorkActivityCreate) {
         isLoading = true
-        guard let url = URL(string: "\(baseURL)/work-activity/") else {
-            errorMessage = "Invalid URL"
-            isLoading = false
-            return
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        do {
-            request.httpBody = try JSONEncoder().encode(activity)
-        } catch {
-            errorMessage = "Failed to encode work activity"
-            isLoading = false
-            return
-        }
-        
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                if let error = error {
-                    self?.errorMessage = error.localizedDescription
-                    return
-                }
-                
-                // Refresh the list after creating a new activity
-                self?.fetchWorkActivities()
+        errorMessage = nil
+
+        Task {
+            do {
+                _ = try await workService.createWorkActivity(
+                    date: activity.date,
+                    durationHours: activity.durationHours,
+                    breaksCount: activity.breaksCount.map { Int32($0) },
+                    breaksTotalMinutes: activity.breaksTotalMinutes.map { Int32($0) },
+                    productivity: activity.productivity.map { Int32($0) },
+                    notes: activity.notes
+                )
+                lastActionMessage = "Рабочая активность сохранена"
+                fetchWorkActivities()
+            } catch {
+                errorMessage = mapError(error)
+                isLoading = false
             }
-        }.resume()
+        }
     }
-} 
+
+    private func mapError(_ error: Error) -> String {
+        if let grpcError = error as? GRPCStatus {
+            return grpcError.message ?? "Ошибка сервера (\(grpcError.code))"
+        }
+        return error.localizedDescription
+    }
+}

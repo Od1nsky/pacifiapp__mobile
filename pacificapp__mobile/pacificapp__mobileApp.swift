@@ -15,19 +15,38 @@ struct pacificapp__mobileApp: App {
         WindowGroup {
             if authViewModel.isAuthenticated {
                 TabView {
-                    HomeView()
-                        .tabItem {
-                            Label("Home", systemImage: "house")
-                        }
-                    
-                    WorkTrackingView()
-                        .tabItem {
-                            Label("Work", systemImage: "briefcase")
-                        }
+                    NavigationStack {
+                        HomeView()
+                    }
+                    .tabItem {
+                        Label("Дом", systemImage: "house")
+                    }
+                    .environmentObject(authViewModel)
+
+                    NavigationStack {
+                        SleepTrackingView()
+                    }
+                    .tabItem {
+                        Label("Сон", systemImage: "bed.double.fill")
+                    }
+
+                    NavigationStack {
+                        WorkTrackingView()
+                    }
+                    .tabItem {
+                        Label("Работа", systemImage: "briefcase")
+                    }
+
+                    NavigationStack {
+                        RecommendationsView()
+                    }
+                    .tabItem {
+                        Label("Рекомендации", systemImage: "sparkles")
+                    }
                 }
                 .environmentObject(authViewModel)
             } else {
-                NavigationView {
+                NavigationStack {
                     LoginView()
                 }
                 .environmentObject(authViewModel)

@@ -1,77 +1,64 @@
 import Foundation
-import SwiftUI
+import GRPC
 
-class SleepViewModel: ObservableObject {
+@MainActor
+final class SleepViewModel: ObservableObject {
     @Published var sleepRecords: [SleepRecord] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
-    
-    private let baseURL = "http://localhost:8000/api"
-    
+    @Published var lastActionMessage: String?
+
+    private let sleepService: SleepGRPCService
+
+    init(sleepService: SleepGRPCService = GRPCServiceFactory.shared.sleepService) {
+        self.sleepService = sleepService
+    }
+
     func fetchSleepRecords() {
         isLoading = true
-        guard let url = URL(string: "\(baseURL)/sleep/") else {
-            errorMessage = "Invalid URL"
-            isLoading = false
-            return
-        }
-        
-        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                if let error = error {
-                    self?.errorMessage = error.localizedDescription
-                    return
-                }
-                
-                guard let data = data else {
-                    self?.errorMessage = "No data received"
-                    return
-                }
-                
-                do {
-                    let records = try JSONDecoder().decode([SleepRecord].self, from: data)
-                    self?.sleepRecords = records
-                } catch {
-                    self?.errorMessage = "Failed to decode sleep records"
-                }
+        errorMessage = nil
+
+        Task {
+            do {
+                let result = try await sleepService.listSleepRecords(
+                    page: 1,
+                    pageSize: 50,
+                    startDate: nil,
+                    endDate: nil
+                )
+                sleepRecords = result.records
+            } catch {
+                errorMessage = mapError(error)
             }
-        }.resume()
+            isLoading = false
+        }
     }
-    
+
     func createSleepRecord(record: SleepRecordCreate) {
         isLoading = true
-        guard let url = URL(string: "\(baseURL)/sleep/") else {
-            errorMessage = "Invalid URL"
-            isLoading = false
-            return
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        do {
-            request.httpBody = try JSONEncoder().encode(record)
-        } catch {
-            errorMessage = "Failed to encode sleep record"
-            isLoading = false
-            return
-        }
-        
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                if let error = error {
-                    self?.errorMessage = error.localizedDescription
-                    return
-                }
-                
-                // Refresh the list after creating a new record
-                self?.fetchSleepRecords()
+        errorMessage = nil
+
+        Task {
+            do {
+                _ = try await sleepService.createSleepRecord(
+                    date: record.date,
+                    durationHours: record.durationHours,
+                    quality: record.quality.map { Int32($0) },
+                    notes: record.notes
+                )
+                lastActionMessage = "Запись сна сохранена"
+                fetchSleepRecords()
+            } catch {
+                errorMessage = mapError(error)
+                isLoading = false
             }
-        }.resume()
+        }
     }
-} 
+
+    private func mapError(_ error: Error) -> String {
+        if let grpcError = error as? GRPCStatus {
+            return grpcError.message ?? "Ошибка сервера (\(grpcError.code))"
+        }
+        return error.localizedDescription
+    }
+}
